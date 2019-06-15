@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an Questions of Time -Series. As we have been provided with the data of Airpassangers within specific date 
+and we have to perdict future sales. 
+
+I am going to follow below steps one after another 
+
+a) Analyze the provided trends 
+b) Check if provided data is stationary. 
+c)Using auto.arima will find the best fit model
+d)Will test my model using Ljung-Box.
+
+Step 1 : Import data file 
+
+```{r ImportDataAndLibrary}
+library(ggplot2)
+library(tseries)
+library(forecast)
+
+data<-read.csv(file.choose(),stringsAsFactors = FALSE)
+head(data)
+summary(data)
+class(data)
+```
+Now we know that our class of data is dataframe so we cannot proceed further until it has time series data frame. 
+So how ? 
+
+What i tried is to create a new data(dd) have year and month starting from provided date and ending at a provided date. 
+
+
+```{r ConvertToTimeSeries}
+dd<-ts(data[-1], frequency=12, start=c(1949,1), end = c(1960,12))
+class(dd)
+plot(dd)
+abline(reg=lm(dd~time(dd)))
+```
+
+Check whether it is cyclic , to check i will create a box plot
+
+```{r}
+cycle(dd)
+boxplot(dd~cycle(dd))
+```
+Clearly from above image that in month of July the sale is heighest in all years.
+
+The building blocks of a time series analysis are seasonality, trend, and cycle. These intuitive components capture the historical patterns in the series. Not every series will have all three (or any) of these components, but if they are present, deconstructing the series can help you understand its behavior and prepare a foundation for building a forecasting model.
+
+```{r}
+trends<-decompose(dd, "multiplicative")
+plot(trends)
+```
+```{r}
+# In order to verify the stationarity of a specific timeseries we use the widely known Augmented-Dickey otherwise known as the Dickey-Fuller test.
+
+#The null hypothesis under this test is that the time series under study in not stationary and we accept Ho if the p-value>0.05. Carrying out this test in R:
+
+
+adf.test(dd, alternative = "stationary")
+```
+
+Now, we will do ARIMA 
+
+ARIMA -Auto regressive integrative average
+p,d,q
+p- auto regressive (AR)
+d - Integrative (how many level of differences we need to do)
+q - Moving average (MA)
+
+In terms regression model , autoregressive components refer to prior values of the current value. 
+p is the value of number of lags we are considering e.g we are considering data from last two months do p= 2.
+
+d=
+
+q = it represt as error of model 
+
+ARIMA works on assumption that data is staionary.
+Inorder to test that data is stationary we will use ACF(Auto- coreelation function) and other is PACF(partial Auto -correlation function)
+
+
+```{r}
+model<-auto.arima(dd)
+model
+#this automatically select the ARIMA model and provided us with p,d,q values.
+```
+```{r}
+perdict<-forecast(model, level = c(95), h=10*12)
+plot(myforecast)
+```
+
+```{r}
+#test our model
+
+Box.test(model$resid, lag = 5, type = "Ljung-Box")
+Box.test(model$resid, lag = 10, type = "Ljung-Box")
+Box.test(model$resid, lag = 15, type = "Ljung-Box")
+```
+
